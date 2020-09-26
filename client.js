@@ -1,5 +1,6 @@
 
 const net = require("net");
+const { threadId } = require("worker_threads");
 
 /**
  * Request需要的信息有：
@@ -71,8 +72,7 @@ class Response {
 }
 
 /**
- * 使用状态机处理socket接收到的数据然后产生多个response
- * 完整的response包括status line、headers、body
+ * 解析处理status line、header、分割行的状态机
  */
 class ResponseParser {
     constructor() {
@@ -99,6 +99,8 @@ class ResponseParser {
         this.headerName = "";
         // 响应头值
         this.headerValue = "";
+        // body状态机
+        this.bodyParser = null;
     }
     // 处理socket接收到的数据
     receive(string) {
@@ -125,9 +127,11 @@ class ResponseParser {
         } else if (this.current === this.WAITING_HEADER_NAME) {
             if (char === ':') { // 以':'结束
                 this.current = this.WAITING_HEADER_SPACE;
-            }
-            if (char === '\r') {// \r结束
-                this.current = this.WAITING_BODY
+            } else if (char === '\r') {// \r结束
+                this.current = this.WAITING_HEADER_BLOCK_END;
+                if (this.headers['Transfer-Encoding'] === 'chunked') { // 根据header头Transfer-Encoding值进行处理body
+                    this.bodyParser = new TrunkdBodyParser();
+                }
             } else {
                 this.headerName += char;
             }
@@ -148,14 +152,68 @@ class ResponseParser {
             if (char === '\n') {// 以'\n'结束
                 this.current = this.WAITING_HEADER_NAME;
             }
+        } else if (this.current === this.WAITING_HEADER_BLOCK_END) { // 处理header部分
+            if (char === '\n') {// 以'\n'结束
+                this.current = this.WAITING_BODY;
+            }
+        } else if (this.current === this.WAITING_BODY) {
+            this.bodyParser.receiveChar(char);
         }
     }
 }
 
+// 解析处理body部分的状态机
+/**
+ * body的内容格式为,如:
+ * 2/r/nok
+ */
 class TrunkdBodyParser {
     constructor() {
+        // 状态定义
+        this.WAITING_LENGTH = 0; // 十进制length
+        this.WAITING_LENGTH_LINE_END = 1; // 十进制length结束
+        this.READING_TRUNK = 2; // 获取trunk
+        this.WAITING_NEW_LINE = 3; // 十进制length读取开始
+        this.WAITING_NEW_LINE_END = 4; // 十进制length读取结束
+        this.length = 0; // 表示读取到的length字符（这里转成十进制）
+        this.content = []; // 用来存放接收到的trunk
+        this.isFinished = false; // body是否已经解析完成
+        // 状态机当前状态
+        this.current = this.WAITING_LENGTH;
     }
-    receive(string) {
+    receiveChar(char) {
+        // console.log(JSON.stringify(char))
+        if (this.current === this.WAITING_LENGTH) {
+            if (char === '\r') {
+                if (this.length === 0) { // 如果读取到的length为0，表示body解析完成
+                    this.isFinished = true;
+                    console.log(this.content)
+                }
+                this.current = this.WAITING_LENGTH_LINE_END;
+            } else {
+                // 字符串转数字，也可以用Number(^_^)
+                this.length *= char;
+                this.length += char.charCodeAt(0) - '0'.codePointAt(0);
+            }
+        } else if (this.current === this.WAITING_LENGTH_LINE_END) {
+            if (char === '\n') {
+                this.current = this.READING_TRUNK;
+            }
+        } else if (this.current === this.READING_TRUNK) {
+            this.content.push(char);
+            this.length--;
+            if (this.length === 0) {
+                this.current = this.WAITING_NEW_LINE;
+            }
+        } else if (this.current === this.WAITING_NEW_LINE) {
+            if (char === '\r') {
+                this.current = this.WAITING_NEW_LINE_END;
+            }
+        } else if (this.current === this.WAITING_NEW_LINE_END) {
+            if (char === '\n') {
+                this.current = this.WAITING_LENGTH;
+            }
+        }
 
     }
 }

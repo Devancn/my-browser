@@ -1,5 +1,6 @@
 #### http协议rfc(Request For Comments)标准文档
 [Request For Comments地址](https://tools.ietf.org/html/rfc2616)
+> response包括status line、headers、body
 
 ### /r/n解释
 - \r(return) 使光标到行首
