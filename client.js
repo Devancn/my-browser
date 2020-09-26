@@ -40,6 +40,7 @@ ${this.bodyText}`
     // 使用net模块创建socket发送数据
     send(connection) {
         return new Promise((resolve, reject) => {
+            const parser = new ResponseParser;
             if (connection) {
                 connection.write(this.toString());
             } else {
@@ -52,7 +53,8 @@ ${this.bodyText}`
             }
 
             connection.on('data', data => {
-                resolve(data.toString());
+                parser.receive(data.toString());
+                console.log(parser.statusLine);
                 connection.end();
             })
             connection.on('error', err => {
@@ -83,13 +85,45 @@ class ResponseParser {
         this.WAITING_HEADER_LINE_END = 4; // 值后面\r\n
         // header 与 body之间的分割（两个空行） 
         this.WAITING_HEADER_BLOCK_END = 5;
+
+        // 状态机当前状态
+        this.current = this.WAITING_STATUS_LINE;
+        // 状态栏信息
+        this.statusLine = "";
+        // 响应头信息
+        this.headers = {};
+        // 响应头名称
+        this.headerName = "";
+        // 响应头值
+        this.headerValue = "";
+    }
+    // 处理socket接收到的数据
+    receive(string) {
+        for (let i = 0; i < string.length; i++) {
+            this.receiveChar(string.charAt(i));
+        }
+    }
+    // 根据接收到的字符信息与状态机状态处理对应状态信息
+    receiveChar(char) {
+        // 等待接收status line字符状态
+        if (this.current === this.WAITING_STATUS_LINE) {
+            // status line是否结束
+            if (char === '\r') {
+                this.current = this.WAITING_STATUS_LINE_END;
+            } else {
+                this.statusLine += char;
+            }
+        }
+    }
+}
+
+class TrunkdBodyParser {
+    constructor() {
     }
     receive(string) {
 
     }
 }
-
-
 
 void async function () {
     let request = new Request({
