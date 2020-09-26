@@ -37,7 +37,7 @@ ${Object.keys(this.headers).map(key => `${key}: ${this.headers[key]}`).join('\r\
 \r
 ${this.bodyText}`
     }
-    // 根据底层net模块发送数据
+    // 使用net模块创建socket发送数据
     send(connection) {
         return new Promise((resolve, reject) => {
             if (connection) {
@@ -67,6 +67,29 @@ ${this.bodyText}`
 class Response {
 
 }
+
+/**
+ * 使用状态机处理socket接收到的数据然后产生多个response
+ * 完整的response包括status line、headers、body
+ */
+class ResponseParser {
+    constructor() {
+        // status line状态
+        this.WAITING_STATUS_LINE = 0; // 等待status line
+        this.WAITING_STATUS_LINE_END = 1; // status line后接收到\r\n
+        // header 状态(多个header时会重复header处理流程)
+        this.WAITING_HEADER_NAME = 2; // 接收header名字部分
+        this.WAITING_HEADER_VALUE = 3; // 接收到':'后为header值
+        this.WAITING_HEADER_LINE_END = 4; // 值后面\r\n
+        // header 与 body之间的分割（两个空行） 
+        this.WAITING_HEADER_BLOCK_END = 5;
+    }
+    receive(string) {
+
+    }
+}
+
+
 
 void async function () {
     let request = new Request({
