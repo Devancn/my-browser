@@ -54,8 +54,10 @@ ${this.bodyText}`
 
             connection.on('data', data => {
                 parser.receive(data.toString());
-                console.log(parser.statusLine);
-                console.log(parser.headers);
+
+                if (parser.isFinished) {
+                    resolve(parser.response);
+                }
                 connection.end();
             })
             connection.on('error', err => {
@@ -102,6 +104,18 @@ class ResponseParser {
         // body状态机
         this.bodyParser = null;
     }
+    get isFinished() {
+        return this.bodyParser && this.bodyParser.isFinished;
+    }
+    get response() {
+        this.statusLine.match(/HTTP\/1.1 ([0-9]+) ([\s\S]+)/);
+        return {
+            statusCode: RegExp.$1,
+            statusText: RegExp.$2,
+            headers: this.headers,
+            body: this.bodyParser.content.join('')
+        }
+    }
     // 处理socket接收到的数据
     receive(string) {
         for (let i = 0; i < string.length; i++) {
@@ -114,12 +128,14 @@ class ResponseParser {
         if (this.current === this.WAITING_STATUS_LINE) { // 等待接收status line字符状态
             if (char === '\r') { // \r结束
                 this.current = this.WAITING_STATUS_LINE_END;
-            }
-            if (char === '\n') { // \n结束
-                this.current = this.WAITING_HEADER_NAME;
             } else {
-                this.statusLine += char;
+                if (char === '\n') { // \n结束
+                    this.current = this.WAITING_HEADER_NAME;
+                } else {
+                    this.statusLine += char;
+                }
             }
+
         } else if (this.current === this.WAITING_STATUS_LINE_END) { // 处理header部分
             if (char === '\n') {// 以'\n'结束
                 this.current = this.WAITING_HEADER_NAME;
@@ -187,7 +203,6 @@ class TrunkdBodyParser {
             if (char === '\r') {
                 if (this.length === 0) { // 如果读取到的length为0，表示body解析完成
                     this.isFinished = true;
-                    console.log(this.content)
                 }
                 this.current = this.WAITING_LENGTH_LINE_END;
             } else {
@@ -200,11 +215,20 @@ class TrunkdBodyParser {
                 this.current = this.READING_TRUNK;
             }
         } else if (this.current === this.READING_TRUNK) {
-            this.content.push(char);
-            this.length--;
-            if (this.length === 0) {
+            if (char === '\r') {
                 this.current = this.WAITING_NEW_LINE;
-            }
+            } else {
+                if(char === '\n') {
+                    this.current = this.WAITING_LENGTH;
+                } else {
+                    this.content.push(char);
+                    this.length--;
+                    if (this.length === 0) {
+                        this.current = this.WAITING_NEW_LINE;
+                    }
+                }
+            } 
+
         } else if (this.current === this.WAITING_NEW_LINE) {
             if (char === '\r') {
                 this.current = this.WAITING_NEW_LINE_END;
