@@ -39,18 +39,27 @@ ${this.bodyText}`
     }
     // 根据底层net模块发送数据
     send(connection) {
-        if (connection) {
-            connection.write(this.toString());
-        } else {
-            connection = net.createConnection({
-                host: this.host,
-                port: this.port
-            }, () => {
+        return new Promise((resolve, reject) => {
+            if (connection) {
                 connection.write(this.toString());
+            } else {
+                connection = net.createConnection({
+                    host: this.host,
+                    port: this.port
+                }, () => {
+                    connection.write(this.toString());
+                })
+            }
+
+            connection.on('data', data => {
+                resolve(data.toString());
+                connection.end();
             })
-        }
-
-
+            connection.on('error', err => {
+                reject(err);
+                connection.end();
+            })
+        });
     }
 }
 
@@ -58,19 +67,24 @@ ${this.bodyText}`
 class Response {
 
 }
-let request = new Request({
-    method: "POST ",
-    host: "127.0.0.1",
-    port: "8088",
-    path: '/',
-    headers: {
-        ["X-Foo2"]: "customed"
-    },
-    body: {
-        name: "Devan"
-    }
-});
-request.send();
+
+void async function () {
+    let request = new Request({
+        method: "POST ",
+        host: "127.0.0.1",
+        port: "8088",
+        path: '/',
+        headers: {
+            ["X-Foo2"]: "customed"
+        },
+        body: {
+            name: "Devan"
+        }
+    });
+    let response = await request.send();
+    console.log(response);
+}();
+
 /*
 const client = net.createConnection({
    host: '127.0.0.1',
