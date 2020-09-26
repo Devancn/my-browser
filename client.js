@@ -1,5 +1,4 @@
 
-// http实现标准 https://tools.ietf.org/html/rfc2616
 const net = require("net");
 
 /**
@@ -78,7 +77,7 @@ class ResponseParser {
     constructor() {
         // status line状态
         this.WAITING_STATUS_LINE = 0; // 等待status line
-        this.WAITING_STATUS_LINE_END = 1; // status line后接收到\r\n
+        this.WAITING_STATUS_LINE_END = 1; // status line后接收到\r
         // header 状态(多个header时会重复header处理流程)
         this.WAITING_HEADER_NAME = 2; // 接收header名字部分
         this.WAITING_HEADER_VALUE = 3; // 接收到':'后为header值
@@ -110,6 +109,8 @@ class ResponseParser {
             // status line是否结束
             if (char === '\r') {
                 this.current = this.WAITING_STATUS_LINE_END;
+            } else if (char === '\n') {
+                this.current = this.WAITING_HEADER_NAME;
             } else {
                 this.statusLine += char;
             }
