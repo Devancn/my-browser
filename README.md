@@ -25,4 +25,4 @@ stringify后
 ```
 "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nX-foo: bar\r\nDate: Sat, 26 Sep 2020 12:01:41 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nTransfer-Encoding: chunked\r\n\r\n2\r\nok\r\n0\r\n\r\n"
 ```
-> 状态机难点是如何根据http response自定义状态,后期会用generator实现状态机
+> 状态机难点是如何根据http response自定义状态,然后根据读取到的每一个字符切换不同状态，每个状态处理不同逻辑。后期会用generator实现状态机
