@@ -54,6 +54,7 @@ ${this.bodyText}`
             connection.on('data', data => {
                 parser.receive(data.toString());
                 console.log(parser.statusLine);
+                console.log(parser.headers);
                 connection.end();
             })
             connection.on('error', err => {
@@ -80,10 +81,13 @@ class ResponseParser {
         this.WAITING_STATUS_LINE_END = 1; // status line后接收到\r
         // header 状态(多个header时会重复header处理流程)
         this.WAITING_HEADER_NAME = 2; // 接收header名字部分
-        this.WAITING_HEADER_VALUE = 3; // 接收到':'后为header值
-        this.WAITING_HEADER_LINE_END = 4; // 值后面\r\n
+        this.WAITING_HEADER_SPACE = 3; // ':'后面的空格
+        this.WAITING_HEADER_VALUE = 4; // 接收到':'后为header值
+        this.WAITING_HEADER_LINE_END = 5; // 值后面\r\n
         // header 与 body之间的分割（两个空行） 
-        this.WAITING_HEADER_BLOCK_END = 5;
+        this.WAITING_HEADER_BLOCK_END = 6;
+        // 处理body状态
+        this.WAITING_BODY = 7;
 
         // 状态机当前状态
         this.current = this.WAITING_STATUS_LINE;
@@ -104,15 +108,45 @@ class ResponseParser {
     }
     // 根据接收到的字符信息与状态机状态处理对应状态信息
     receiveChar(char) {
-        // 等待接收status line字符状态
-        if (this.current === this.WAITING_STATUS_LINE) {
-            // status line是否结束
-            if (char === '\r') {
+        // 后期可以优化成每一个状态对应一个函数进行处理
+        if (this.current === this.WAITING_STATUS_LINE) { // 等待接收status line字符状态
+            if (char === '\r') { // \r结束
                 this.current = this.WAITING_STATUS_LINE_END;
-            } else if (char === '\n') {
+            }
+            if (char === '\n') { // \n结束
                 this.current = this.WAITING_HEADER_NAME;
             } else {
                 this.statusLine += char;
+            }
+        } else if (this.current === this.WAITING_STATUS_LINE_END) { // 处理header部分
+            if (char === '\n') {// 以'\n'结束
+                this.current = this.WAITING_HEADER_NAME;
+            }
+        } else if (this.current === this.WAITING_HEADER_NAME) {
+            if (char === ':') { // 以':'结束
+                this.current = this.WAITING_HEADER_SPACE;
+            }
+            if (char === '\r') {// \r结束
+                this.current = this.WAITING_BODY
+            } else {
+                this.headerName += char;
+            }
+        } else if (this.current === this.WAITING_HEADER_SPACE) {
+            if (char === ' ') {// 以' '结束
+                this.current = this.WAITING_HEADER_VALUE;
+            }
+        } else if (this.current === this.WAITING_HEADER_VALUE) {
+            if (char === '\r') { // 以'\r'结束
+                this.current = this.WAITING_HEADER_LINE_END;
+                this.headers[this.headerName] = this.headerValue;
+                this.headerName = '';
+                this.headerValue = '';
+            } else {
+                this.headerValue += char;
+            }
+        } else if (this.current === this.WAITING_HEADER_LINE_END) { // 处理多个header情况
+            if (char === '\n') {// 以'\n'结束
+                this.current = this.WAITING_HEADER_NAME;
             }
         }
     }
