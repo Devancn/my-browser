@@ -1,7 +1,6 @@
 
 const net = require("net");
-const { threadId } = require("worker_threads");
-
+const parser = require("./parser.js");
 /**
  * Request需要的信息有：
  * method, url = host + port + path
@@ -206,7 +205,7 @@ class TrunkdBodyParser {
                 }
                 this.current = this.WAITING_LENGTH_LINE_END;
             } else {
-                // 字符串转数字，也可以用Number(^_^)
+                // 讲16进制字符转数字
                 this.length *= 16;
                 this.length += parseInt(char, 16);
             }
@@ -215,19 +214,15 @@ class TrunkdBodyParser {
                 this.current = this.READING_TRUNK;
             }
         } else if (this.current === this.READING_TRUNK) {
-            if (char === '\r') {
+             // 防止换行符被存储
+            this.content.push(char);
+            // 处理完一个字符，长度减1
+            this.length --;
+
+            // 读取完成
+            if (this.length === 0) { 
                 this.current = this.WAITING_NEW_LINE;
-            } else {
-                if(char === '\n') {
-                    this.current = this.WAITING_LENGTH;
-                } else {
-                    this.content.push(char);
-                    this.length--;
-                    if (this.length === 0) {
-                        this.current = this.WAITING_NEW_LINE;
-                    }
-                }
-            } 
+            }
 
         } else if (this.current === this.WAITING_NEW_LINE) {
             if (char === '\r') {
@@ -256,7 +251,8 @@ void async function () {
         }
     });
     let response = await request.send();
-    console.log(response);
+    let dom = parser.parserHTML(response.body);
+    console.log(dom);
 }();
 
 /*
