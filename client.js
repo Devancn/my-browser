@@ -207,8 +207,8 @@ class TrunkdBodyParser {
                 this.current = this.WAITING_LENGTH_LINE_END;
             } else {
                 // 字符串转数字，也可以用Number(^_^)
-                this.length *= char;
-                this.length += char.charCodeAt(0) - '0'.codePointAt(0);
+                this.length *= 16;
+                this.length += parseInt(char, 16);
             }
         } else if (this.current === this.WAITING_LENGTH_LINE_END) {
             if (char === '\n') {
