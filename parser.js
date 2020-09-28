@@ -1,14 +1,48 @@
-
+const css = require('css');
 
 let currentToken = null; // 记录当前产生的token对象
 let currentAttribute = null; //记录当前产生的属性token对象
 
-
 let stack = [{ type: "document", children: [] }]; // 构件根元素的父节点，方便获取整个dom树
 let currentTextNode = null; //记录产生的文本节点
 
+
+let rules = []; // 把CSS规则暂存到数组里面
+function addCssRules(text) {
+    var ast = css.parse(text);
+    console.log(JSON.stringify(ast, null, "  "))
+    rules.push(...ast.stylesheet.rules);
+}
+
+function computeCSS(element) {
+    // 这里elements中的元素肯定是element父元素父父元素等，因为此时element还没入栈
+    var elements = stack.slice().reverse();// dom元素顺序是从内到外如：div>body>html>#document
+    if (!element.computedStyle) {
+        element.computedStyle = {};
+    }
+    for (let rule of rules) {
+        var selectorParts = rule.selectors[0].split(" ").reverse(); // 如：[#myid,div,body]
+
+        //当前dom元素与最近的css选择器不匹配则跳过
+        if (!match(element, selectorParts[0])) {
+            continue;
+        }
+        var j = 1; // 表示每个selector，从1开始是selectorParts中第0项与当前元素匹配，第1项开始才是和elements匹配，因为elements中元素不包含当前元素
+        for (var i = 0; i < elements.length; i++) {
+            if (match(elements[i], selectorParts[j])) {
+                j++;
+            }
+        }
+        // 此时复核css选择器是匹配当前元素的
+        if (j >= selectorParts.length) {
+            
+        }
+
+    }
+    console.log(rules)
+}
+
 function emit(token) {
-    if (token.type === "text") return
     let top = stack[stack.length - 1];
     if (token.type === "startTag") {
         let element = {
@@ -27,6 +61,8 @@ function emit(token) {
             }
         }
 
+        computeCSS(element);
+
         top.children.push(element);
         element.parent = top;
 
@@ -38,6 +74,10 @@ function emit(token) {
         if (top.tagName !== token.tagName) {
             throw new Error("Tag start end doesn't match!")
         } else {
+            // 遇到style标签时，执行添加css规则的操作
+            if (top.tagName === "style") {
+                addCssRules(top.children[0].content)
+            }
             stack.pop();
         }
         currentTextNode = null

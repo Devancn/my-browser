@@ -1,0 +1,24 @@
+{
+  "name": "my-browser",
+  "version": "1.0.0",
+  "description": "[Request For Comments地址](https://tools.ietf.org/html/rfc2616)\r > response包括status line、headers、body",
+  "main": "addCssRules.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Devancn/my-browser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Devancn/my-browser/issues"
+  },
+  "homepage": "https://github.com/Devancn/my-browser#readme",
+  "dependencies": {
+    "css": "^3.0.0"
+  }
+}
