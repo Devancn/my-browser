@@ -39,6 +39,36 @@ function match(element, selector) {
     return false;
 }
 
+// css权重累计计算
+function specificity(selector) {
+    var p = [0, 0, 0, 0]; // 选择器优先级四元组【内联样式、ID选择器、类选择器、标签选择器】，优先级从高到低
+    var selectorParts = selector.split(" ");
+    for (var part of selectorParts) {
+        if (part.charAt(0) === "#") {
+            p[1] += 1;
+        } else if (part.charAt(0) === ".") {
+            p[2] += 1;
+        } else {
+            p[3] += 1;
+        }
+    }
+    return p;
+}
+
+// css权重优先级计算，从高位开始一直计算到低位，高位算出结果就不管低位
+function compare(sp1, sp2) {
+    if (sp1[0] - sp2[0]) {
+        return sp1[0] - sp2[0];
+    }
+    if (sp1[1] - sp2[1]) {
+        return sp1[1] - sp2[1];
+    }
+    if (sp1[2] - sp2[2]) {
+        return sp1[2] - sp2[2];
+    }
+    return sp1[3] - sp2[3];
+}
+
 function computeCSS(element) {
     // 这里elements中的元素肯定是element父元素父父元素等，因为此时element还没入栈
     var elements = stack.slice().reverse();// dom元素顺序是从内到外如：div>body>html>#document
@@ -63,10 +93,29 @@ function computeCSS(element) {
             matched = true;
         }
         if (matched) {
-            console.log(element, rule);
+            var sp = specificity(rule.selectors[0]);
+            var computedStyle = element.computedStyle;
+            for (var declaration of rule.declarations) {
+                if (!computedStyle[declaration.property]) {
+                    computedStyle[declaration.property] = {}
+                }
+                if (!computedStyle[declaration.property].specificity) {
+                    computedStyle[declaration.property].value = declaration.value;
+                    computedStyle[declaration.property].specificity = sp;
+                } else if (compare(computedStyle[declaration.property].specificity, sp) < 0) {
+                    computedStyle[declaration.property].value = declaration.value;
+                    computedStyle[declaration.property].specificity = sp;
+                }
+
+            }
+            console.log(element.computedStyle)
         }
 
     }
+
+    // let inlineStyle = element.attributes.filter(p => p.name === "style");
+    // css.parse(`* {${inlineStyle}}`);
+ 
 }
 
 function emit(token) {
