@@ -10,8 +10,33 @@ let currentTextNode = null; //记录产生的文本节点
 let rules = []; // 把CSS规则暂存到数组里面
 function addCssRules(text) {
     var ast = css.parse(text);
-    console.log(JSON.stringify(ast, null, "  "))
     rules.push(...ast.stylesheet.rules);
+}
+
+// 选择器是否与当前元素上ID选择器、类选择器、标签选择器匹配,这里只考虑了简单场景
+function match(element, selector) {
+    if (!selector || !element.attributes) {
+        return false;
+    }
+    // 是否与ID选择器匹配
+    if (selector.charAt(0) === "#") {
+        var attr = element.attributes.filter(attr => attr.name === 'id')[0];
+        if (attr && attr.value === selector.replace("#", '')) {
+            return true;
+        }
+        // 是否与类选择器匹配
+    } else if (selector.charAt(0) === ".") {
+        var attr = element.attributes.filter(attr => attr.name === "class")[0];
+        if (attr && attr.value === selector.replace(".", "")) {
+            return true;
+        }
+    } else {
+        // 是否与标签选择器匹配
+        if (element.tagName === selector) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function computeCSS(element) {
@@ -22,11 +47,11 @@ function computeCSS(element) {
     }
     for (let rule of rules) {
         var selectorParts = rule.selectors[0].split(" ").reverse(); // 如：[#myid,div,body]
-
         //当前dom元素与最近的css选择器不匹配则跳过
         if (!match(element, selectorParts[0])) {
             continue;
         }
+        let matched = false;
         var j = 1; // 表示每个selector，从1开始是selectorParts中第0项与当前元素匹配，第1项开始才是和elements匹配，因为elements中元素不包含当前元素
         for (var i = 0; i < elements.length; i++) {
             if (match(elements[i], selectorParts[j])) {
@@ -35,11 +60,13 @@ function computeCSS(element) {
         }
         // 此时复核css选择器是匹配当前元素的
         if (j >= selectorParts.length) {
-            
+            matched = true;
+        }
+        if (matched) {
+            console.log(element, rule);
         }
 
     }
-    console.log(rules)
 }
 
 function emit(token) {
@@ -289,6 +316,7 @@ function UnquotedAttributeValue(c) {
 function selfClosingStartTag(c) {
     if (c === ">") {
         currentToken.isSelfClosing = true;
+        emit(currentToken);
         return data;
     } else if (c === "EOF") {
 
