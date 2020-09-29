@@ -51,5 +51,7 @@ stringify后
 当前元素与css规则中每一条selectors从内向外匹配如`["body div #myid"]`，匹配顺序是#myid>div>body
 
 ### css权重计算规则
+内联样式 > ID选择器 > class选择器 > 标签选择器  
+css 优先级是以从高位开始累计计数比较，不是以最终总和来计算优先级
 [https://www.w3.org/TR/CSS2/cascade.html#specificity](https://www.w3.org/TR/CSS2/cascade.html#specificity)  
 [https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity)
