@@ -49,3 +49,7 @@ stringify后
 
 ### CSS匹配规则
 当前元素与css规则中每一条selectors从内向外匹配如`["body div #myid"]`，匹配顺序是#myid>div>body
+
+### css权重计算规则
+[https://www.w3.org/TR/CSS2/cascade.html#specificity](https://www.w3.org/TR/CSS2/cascade.html#specificity)  
+[https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity)
