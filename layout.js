@@ -119,6 +119,66 @@ function layout(element) {
         crossBase = 0;
         crossSign = 1;
     }
+
+    var isAutoMainSize = false;
+    if (!style[mainSize]) {
+        elementStyle[mainSize] = 0;
+        for (var i = 0; i < items.length; i++) {
+            var itemStyle = getStyle(items[i]);
+            if (itemStyle[mainSize] !== null || itemStyle[mainSize] !== (void 0)) {
+                elementStyle[mainSize] = elementStyle + itemStyle[mainSize];
+            }
+        }
+        isAutoMainSize = true;
+    }
+
+    var flexLine = []; // 排列的一行 可能存放多个元素
+    var flexLines = [flexLine];
+
+    var mainSpace = elementStyle[mainSize]; // 剩余空间
+    var crossSpace = 0;// 交叉轴空间
+
+    for (var i = 0; i < items.length; i++) {
+        var itemStyle = getStyle(items[i]);
+
+        if (itemStyle[mainSize] === null) {
+            itemStyle[mainSize] = 0;
+        }
+
+        if (itemStyle.flex) {
+            flexLine.push(item);
+        } else if (style.flexWrap === 'nowrap' && isAutoMainSize) {
+            mainSpace -= itemStyle[mainSize];
+            if (itemStyle[crossSize] !== null && itemStyle[crossSize] !== (void 0)) {
+                crossSpace = Math.max(crossSpace, itemStyle[crossSize]);
+            }
+            flexLine.push(item);
+        } else {
+            if (itemStyle[mainSize] > style[mainSize]) {
+                itemStyle[mainSize] = style[mainSize]
+            }
+            // 如果剩余空间小于当前元素的大小
+            // 则需要把mainSpace与crossSpace存放起来
+            //并重置flexLine，push到flexLines，设置默认mainSpace与容器mainSize，crossSpace为0
+            if (mainSpace < itemStyle[mainSize]) {
+                flexLine.mainSpace = mainSpace;
+                flexLine.crossSpace = crossSpace;
+                flexLine = [item] ;
+                flexLines.push(flexLine);
+                mainSpace = style[mainSize];
+                crossSpace = 0;
+            } else {
+                flexLine.push(item);
+            }
+            if (itemStyle[crossSize] !== null && itemStyle[crossSize] !== (void 0)) {
+                crossSpace = Math.max(crossSpace, itemStyle[crossSize]);
+            }
+            mainSpace -= itemStyle[mainSize];
+        }
+    }
+    flexLine.mainSpace = mainSpace;
+
+    console.log(items)
 }
 
 module.exports = layout;
