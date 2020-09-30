@@ -1,5 +1,9 @@
 const css = require('css');
 
+const EOF = Symbol("EOF");// EOF: (End Of File)用来标识文件结束标志，可以任意标识，因Symbol表示唯一，用字符可能会跟接收到的字符产生冲突
+
+const layout = require("./layout.js")
+
 let currentToken = null; // 记录当前产生的token对象
 let currentAttribute = null; //记录当前产生的属性token对象
 
@@ -154,6 +158,7 @@ function emit(token) {
             if (top.tagName === "style") {
                 addCssRules(top.children[0].content)
             }
+            layout(top);
             stack.pop();
         }
         currentTextNode = null
@@ -169,7 +174,7 @@ function emit(token) {
     }
 
 }
-const EOF = Symbol("EOF");// EOF: (End Of File)用来标识文件结束标志，可以任意标识，因Symbol表示唯一，用字符可能会跟接收到的字符产生冲突
+
 function data(c) {
     if (c === "<") {
         return tagOpen;
