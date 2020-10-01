@@ -4,14 +4,13 @@ function getStyle(element) {
         element.style = {};
     }
     for (let prop in element.computedStyle) {
-        let p = element.computedStyle.value;
         element.style[prop] = element.computedStyle[prop].value;
 
         if (element.style[prop].toString().match(/px$/)) {
             element.style[prop] = parseInt(element.style[prop])
         }
         if (element.style[prop].toString().match(/^[0-9\.]+$/)) {
-            element.stylep[prop] = parseInt(element.style[prop])
+            element.style[prop] = parseInt(element.style[prop])
         }
     }
     return element.style;
@@ -28,6 +27,7 @@ function layout(element) {
     }
 
     var items = element.children.filter(e => e.type === "element");
+
     items.sort(function (a, b) {
         return (a.order || 0) - (b.order || 0);
     })
@@ -41,6 +41,11 @@ function layout(element) {
         }
     })
 
+
+    /**
+     * 给当前元素设置以下默认值
+     * flex-direction、align-items、justifyu-content、flex-wrap、align-content
+     */
     if (!style.flexDirection || style.flexDirection === "auto") {
         style.flexDirection = 'row';
     }
@@ -58,7 +63,15 @@ function layout(element) {
     }
 
 
-
+    /**
+     * main开头的为主轴相关
+     * cross为交叉轴相关
+     * size表示大小如width、height属性
+     * start表示元素排列起始位置，从start方向开始排列
+     * end表示元素排列结束位置，往end方向排列
+     * sign：表示向右排列还是向左排列正1(+1)表示向右排列,负1(-1)表示向左排列
+     * base： 元素排列的起始位置值
+     */
     var mainSize, mainStart, mainEnd, mainSign, mainBase,
         crossSize, crossStart, crossEnd, crossSign, crossBase;
 
@@ -78,7 +91,7 @@ function layout(element) {
         mainSize = 'width';
         mainStart = 'right';
         mainEnd = 'left';
-        mainSign = -1; // 从右往左-1
+        mainSign = -1; 
         mainBase = style.width;
 
         crossSize = 'height';
@@ -117,66 +130,79 @@ function layout(element) {
         crossSign = -1;
     } else {
         crossBase = 0;
-        crossSign = 1;
+        crossSign = +1;
     }
+    
 
-    var isAutoMainSize = false;
+    var isAutoMainSize = false; // 主轴上的size(width/height)是否为自动，没有设置size
     if (!style[mainSize]) {
         elementStyle[mainSize] = 0;
         for (var i = 0; i < items.length; i++) {
             var itemStyle = getStyle(items[i]);
+             // 如果子元素有设置size,element元素容器的主轴size为子元素有设置size累计之和，
             if (itemStyle[mainSize] !== null || itemStyle[mainSize] !== (void 0)) {
-                elementStyle[mainSize] = elementStyle + itemStyle[mainSize];
+                elementStyle[mainSize] = elementStyle[mainSize] + itemStyle[mainSize];
             }
         }
         isAutoMainSize = true;
     }
 
-    var flexLine = []; // 排列的一行 可能存放多个元素
-    var flexLines = [flexLine];
+    var flexLine = []; // 存放flex容器中一行中的每个元素
+    var flexLines = [flexLine];// 存放flex容器中以行分组的每组元素
 
-    var mainSpace = elementStyle[mainSize]; // 剩余空间
-    var crossSpace = 0;// 交叉轴空间
+    var mainSpace = elementStyle[mainSize]; // 主轴剩余空间，初始一个子元素没有，所以size为element元素size
+    var crossSpace = 0;// 初始交叉轴容器剩余空间
 
+    // items为子元素
     for (var i = 0; i < items.length; i++) {
-        var itemStyle = getStyle(items[i]);
+        var item = items[i];
+        var itemStyle = getStyle(item);
 
+        // 如果子元素没有设置size则为0
         if (itemStyle[mainSize] === null) {
             itemStyle[mainSize] = 0;
         }
 
+        // 如果设置了flex属性，则只会全部排列成一行，按照flex值进行比例放置
         if (itemStyle.flex) {
             flexLine.push(item);
-        } else if (style.flexWrap === 'nowrap' && isAutoMainSize) {
+        } else if (style.flexWrap === 'nowrap' && isAutoMainSize) { // nowrap子元素会单行排列
             mainSpace -= itemStyle[mainSize];
             if (itemStyle[crossSize] !== null && itemStyle[crossSize] !== (void 0)) {
                 crossSpace = Math.max(crossSpace, itemStyle[crossSize]);
             }
             flexLine.push(item);
         } else {
+            // 子元素主轴size大于容器size
             if (itemStyle[mainSize] > style[mainSize]) {
                 itemStyle[mainSize] = style[mainSize]
             }
-            // 如果剩余空间小于当前元素的大小
+            // 如果剩余空间小于当前子元素的大小，不够放置子元素
             // 则需要把mainSpace与crossSpace存放起来
-            //并重置flexLine，push到flexLines，设置默认mainSpace与容器mainSize，crossSpace为0
+            // 并重置flexLine，push到flexLines，设置默认mainSpace与容器mainSize，crossSpace为0
             if (mainSpace < itemStyle[mainSize]) {
                 flexLine.mainSpace = mainSpace;
                 flexLine.crossSpace = crossSpace;
+                // 重置flexLine盒子并把当前子元素放入
                 flexLine = [item];
+                // flexLines放入flexLine盒子
                 flexLines.push(flexLine);
+                // 重置主轴空间为element元素mainSize
                 mainSpace = style[mainSize];
+                // 重置交叉轴剩余空间为0
                 crossSpace = 0;
             } else {
                 flexLine.push(item);
             }
+            //如果交叉有上的crossSize有设置，则与当前crossSpace比较取最大值
             if (itemStyle[crossSize] !== null && itemStyle[crossSize] !== (void 0)) {
                 crossSpace = Math.max(crossSpace, itemStyle[crossSize]);
             }
+            // 剩余空间减去当前元素mainSize
             mainSpace -= itemStyle[mainSize];
         }
     }
-    flexLine.mainSpace = mainSpace;
+    flexLine.mainSpace = mainSpace; // 记录当前行的剩余空间
 
     if (style.flexWrap === 'nowrap' || isAutoMainSize) {
         flexLine.crossSpace = (style[crossSize] !== undefined ? style[crossSize] : crossSpace)
@@ -184,9 +210,10 @@ function layout(element) {
         flexLine.crossSpace = crossSpace;
     }
 
+    // 剩余空间为负数情况
     if (mainSpace < 0) {
-        // 缩放比例为 目标值mainSize / 实际mainSize
-        var scale = style[mainSize] / (style[mainSize] - mainSpace);
+        // 缩放比例为 element元素目标mainSize / 实际mainSize
+        var scale = style[mainSize] / (style[mainSize] - mainSpace); // 这里的scale肯定小于1
         var currentMain = mainBase;
         for (var i = 0; i < items.length; i++) {
             var itemStyle = getStyle(items[i]);
@@ -202,11 +229,12 @@ function layout(element) {
             currentMain = itemStyle[mainEnd];
         }
     } else {
+        
         flexLines.forEach(items => {
             var mainSpace = items.mainSpace;
             var flexTotal = 0;
             for (var i = 0; i < items.length; i++) {
-                var itemStyle = getStyle(item[i]);
+                var itemStyle = getStyle(items[i]);
 
                 if ((itemStyle.flex !== null) && itemStyle.flex !== void 0) {
                     flexTotal += itemStyle.flex;
@@ -216,7 +244,7 @@ function layout(element) {
             if (flexTotal > 0) {
                 var currentMain = mainBase;
                 for (var i = 0; i < items.length; i++) {
-                    var itemStyle = getStyle(item[i]);
+                    var itemStyle = getStyle(items[i]);
 
                     if (itemStyle.flex) {
                         itemStyle[mainSize] = (mainSpace / flexTotal) * itemStyle.flex;

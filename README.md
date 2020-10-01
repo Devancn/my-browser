@@ -55,3 +55,8 @@ stringify后
 css 优先级是以从高位开始累计计数比较，不是以最终总和来计算优先级
 [https://www.w3.org/TR/CSS2/cascade.html#specificity](https://www.w3.org/TR/CSS2/cascade.html#specificity)  
 [https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity)
+
+### flex主轴子元素大小计算
+1. 找到所有有flex属性的元素，有的元素可能是固定宽度
+2. 把主轴方向的剩余空间按子元素flex值所占比例进行分配大小
+3. 所剩余空间为负数，所有flex元素大小为0，等比例缩剩余元素

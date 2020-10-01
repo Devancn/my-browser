@@ -112,14 +112,13 @@ function computeCSS(element) {
                 }
 
             }
-            console.log(element.computedStyle)
         }
 
     }
 
     // let inlineStyle = element.attributes.filter(p => p.name === "style");
     // css.parse(`* {${inlineStyle}}`);
- 
+
 }
 
 function emit(token) {
@@ -259,7 +258,7 @@ function attributeName(c) {
     } else if (c === "\"" || c === "'" || c === "<") {
 
     } else {
-        currentAttribute.name = c;
+        currentAttribute.name += c;
         return attributeName;
     }
 }

@@ -214,13 +214,13 @@ class TrunkdBodyParser {
                 this.current = this.READING_TRUNK;
             }
         } else if (this.current === this.READING_TRUNK) {
-             // 防止换行符被存储
+            // 防止换行符被存储
             this.content.push(char);
             // 处理完一个字符，长度减1
-            this.length --;
+            this.length--;
 
             // 读取完成
-            if (this.length === 0) { 
+            if (this.length === 0) {
                 this.current = this.WAITING_NEW_LINE;
             }
 
@@ -252,7 +252,7 @@ void async function () {
     });
     let response = await request.send();
     let dom = parser.parserHTML(response.body);
-    console.log(JSON.stringify(dom));
+    console.log(JSON.stringify(dom, null, "     "));
 }();
 
 /*
