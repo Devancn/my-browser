@@ -163,7 +163,7 @@ function layout(element) {
             if (mainSpace < itemStyle[mainSize]) {
                 flexLine.mainSpace = mainSpace;
                 flexLine.crossSpace = crossSpace;
-                flexLine = [item] ;
+                flexLine = [item];
                 flexLines.push(flexLine);
                 mainSpace = style[mainSize];
                 crossSpace = 0;
@@ -178,7 +178,83 @@ function layout(element) {
     }
     flexLine.mainSpace = mainSpace;
 
-    console.log(items)
+    if (style.flexWrap === 'nowrap' || isAutoMainSize) {
+        flexLine.crossSpace = (style[crossSize] !== undefined ? style[crossSize] : crossSpace)
+    } else {
+        flexLine.crossSpace = crossSpace;
+    }
+
+    if (mainSpace < 0) {
+        // 缩放比例为 目标值mainSize / 实际mainSize
+        var scale = style[mainSize] / (style[mainSize] - mainSpace);
+        var currentMain = mainBase;
+        for (var i = 0; i < items.length; i++) {
+            var itemStyle = getStyle(items[i]);
+
+            if (itemStyle.flex) {
+                itemStyle[mainSize] = 0;
+            }
+
+            itemStyle[mainSize] = itemStyle[mainSize] * scale;
+
+            itemStyle[mainStart] = currentMain;
+            itemStyle[mainEnd] = itemStyle[mainStart] + mainSign * itemStyle[mainSize];
+            currentMain = itemStyle[mainEnd];
+        }
+    } else {
+        flexLines.forEach(items => {
+            var mainSpace = items.mainSpace;
+            var flexTotal = 0;
+            for (var i = 0; i < items.length; i++) {
+                var itemStyle = getStyle(item[i]);
+
+                if ((itemStyle.flex !== null) && itemStyle.flex !== void 0) {
+                    flexTotal += itemStyle.flex;
+                }
+            }
+
+            if (flexTotal > 0) {
+                var currentMain = mainBase;
+                for (var i = 0; i < items.length; i++) {
+                    var itemStyle = getStyle(item[i]);
+
+                    if (itemStyle.flex) {
+                        itemStyle[mainSize] = (mainSpace / flexTotal) * itemStyle.flex;
+                    }
+                    itemStyle[mainStart] = currentMain;
+                    itemStyle[mainEnd] = itemStyle[mainStart] + mainSign * itemStyle[mainSize]
+                    currentMain = itemStyle[mainEnd];
+                }
+            } else {
+                if (style.justifyContent === 'flex-start') {
+                    var currentMain = mainBase;
+                    var step = 0;
+                }
+                if (style.justifyContent === 'flex-end') {
+                    // 元素的起始位置为 mainSpace + mainBase
+                    var currentMain = mainSpace * mainSign + mainBase;
+                    var step = 0;
+                }
+                if (style.justifyContent === 'center') {
+                    var currentMain = mainSpace / 2 * mainSign + mainBase;
+                    var step = 0;
+                }
+                if (style.justifyContent === 'space-between') {
+                    var step = mainSpace / (items.length - 1) * mainSign;
+                    var currentMain = mainBase;
+                }
+                if (style.justifyContent === 'space-around') {
+                    var step = mainSpace / items.length * mainSign;
+                    var currentMain = step / 2 + mainBase;
+                }
+                for (var i = 0; i < items.length; i++) {
+                    itemStyle[mainStart] = currentMain;
+                    itemStyle[mainEnd] = itemStyle[mainStart] + mainSign * itemStyle[mainSize];
+                    currentMain = itemStyle[mainEnd] + step;
+                }
+            }
+        })
+    }
 }
 
 module.exports = layout;
