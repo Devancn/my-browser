@@ -229,7 +229,7 @@ function layout(element) {
             currentMain = itemStyle[mainEnd];
         }
     } else {
-        
+
         flexLines.forEach(items => {
             var mainSpace = items.mainSpace;
             var flexTotal = 0;
@@ -368,7 +368,6 @@ function layout(element) {
         }
         crossBase += crossSign * (lineCrossSize + gap);
     })
-    console.log(items);
 }
 
 module.exports = layout;

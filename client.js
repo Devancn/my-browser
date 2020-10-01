@@ -1,6 +1,8 @@
 
 const net = require("net");
-const parser = require("./parser.js");
+const images = require("images");
+const parser = require("./parser");
+const render = require("./render");
 /**
  * Request需要的信息有：
  * method, url = host + port + path
@@ -252,7 +254,10 @@ void async function () {
     });
     let response = await request.send();
     let dom = parser.parserHTML(response.body);
-    console.log(JSON.stringify(dom, null, "     "));
+
+    let viewport = images(800, 600);
+    render(viewport, dom.children[0].children[3].children[1].children[3]);
+    viewport.save("viewport.jpg");
 }();
 
 /*
